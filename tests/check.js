@@ -106,6 +106,23 @@ ok('マイナス乗のまま答えると不正解 a³×a⁻⁵ → a⁻²', play
 ok('合成で +2π した角は不正解(−π＜α≤π)', play(byQ('sin θ−cos θ'), "raw.full='√2sin(θ+§0)';fractions=[{n:'7π',d:'4'}]") === false);
 ok('加法定理は項の順が逆でも正解', play('sp', "raw.answer='cosβsinα＋sinβcosα'") === true);
 
+// ---- 4b. 解説: 全問にあり、最後の行が正解と同じか ----
+const EX = run('Q.map(q=>[q.id,explain(q)])'), nz = s => s.replace(/\s/g, '').replace(/−/g, '-').replace(/＋/g, '+').replace(/^\((.*)\)\/\((.*)\)$/, '$1/$2');
+for (const [id, ex] of EX) {
+  const q = Q.find(z => z.id === id), tail = ex.length ? ex[ex.length - 1].split(/＝| だから /).pop() : '';
+  ok('解説がある: ' + q.q, ex.length > 0);
+  ok('解説の最後が正解と同じ: ' + q.q, nz(tail) === nz(q.x), `解説 ${tail} / 正解 ${q.x}`);
+}
+// ---- 4c. KaTeX: katex フォルダがあり、問題・正解・解説がすべて表示できるか ----
+const kp = path.join(__dirname, '..', 'katex', 'katex.min.js');
+ok('katex フォルダ(katex.min.js・katex.min.css・fonts)がある', fs.existsSync(kp) && fs.existsSync(path.join(__dirname, '..', 'katex', 'katex.min.css')) && fs.existsSync(path.join(__dirname, '..', 'katex', 'fonts')));
+if (fs.existsSync(kp)) {
+  const katex = require(kp); let bad = 0;
+  for (const [id, ex] of EX) { const q = Q.find(z => z.id === id);
+    for (const s of [q.q, q.x, ...ex]) { const t = run(`tex(${JSON.stringify(s)})`); try { katex.renderToString(t, { throwOnError: true }); } catch (e) { bad++; console.log('  KaTeXで表示できない: ' + s + ' → ' + t); } } }
+  ok('問題・正解・解説がすべて KaTeX で表示できる', bad === 0, bad + '件');
+}
+
 // ---- 5. キー配置: 1〜9は3×3、その下が − 0 ⌫ ----
 const sample = {}; Q.forEach(q => { const k = q.u + q.t; if (!sample[k]) sample[k] = q.id; });
 for (const id of Object.values(sample)) {
